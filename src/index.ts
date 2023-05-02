@@ -2,6 +2,7 @@ import express from 'express'
 import { existsSync, writeFileSync } from 'fs'
 import { getJsonFilePath, addScene, toScene, listScenes, removeScenes } from './db'
 import { rateLimit } from 'express-rate-limit'
+import cors from 'cors'
 
 const PORT = 5003
 
@@ -10,6 +11,13 @@ if (!existsSync(getJsonFilePath())) {
 }
 
 const app = express()
+app.disable('etag')
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+  })
+)
 app.use(express.json())
 
 const limiter = rateLimit({
