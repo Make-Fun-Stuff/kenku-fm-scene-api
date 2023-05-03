@@ -21,7 +21,7 @@ app.use(
 app.use(express.json())
 
 const limiter = rateLimit({
-  windowMs: 3000,
+  windowMs: 1000,
   max: 1,
   standardHeaders: false,
   legacyHeaders: false,
