@@ -1,6 +1,6 @@
 import express from 'express'
 import { existsSync, writeFileSync } from 'fs'
-import { getJsonFilePath, addScene, toScene, listScenes, removeScenes } from './db'
+import { getJsonFilePath, addScene, toScene, listScenes, removeScene, addCampaign } from './db'
 import { rateLimit } from 'express-rate-limit'
 import cors from 'cors'
 
@@ -34,17 +34,26 @@ app
   .post('/', limiter, (req, res) => {
     const body = req.body
     try {
-      res.send(addScene(toScene(body)))
+      res.send(addCampaign(body.campaignName))
     } catch (error) {
       res
         .status(400)
         .send(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }))
     }
   })
-  .delete('/:id', limiter, (req, res) => {
-    const id = req.params.id
+  .post('/:campaignName', limiter, (req, res) => {
+    const body = req.body
     try {
-      res.send(removeScenes(id))
+      res.send(addScene(req.params.campaignName, toScene(body)))
+    } catch (error) {
+      res
+        .status(400)
+        .send(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }))
+    }
+  })
+  .delete('/:campaignName/:sceneId', limiter, (req, res) => {
+    try {
+      res.send(removeScene(req.params.campaignName, req.params.sceneId))
     } catch (error) {
       res
         .status(400)

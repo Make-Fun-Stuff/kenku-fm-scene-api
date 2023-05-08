@@ -43,10 +43,21 @@ const cleanName = (name: string): string => {
   return name.trim().toUpperCase()
 }
 
-const isScene = (obj: any): obj is Scene => {
+const verifyCampaignExists = (campaignName: string): void => {
+  if (!getCampaignScenes().hasOwnProperty(cleanName(campaignName))) {
+    throw Error(`Invalid campaign: ${campaignName}`)
+  }
+}
+
+const isScene = (obj: any, campaignName?: string): obj is Scene => {
+  let unique = true
+  if (campaignName) {
+    verifyCampaignExists(campaignName)
+    const campaignScenes = getCampaignScenes()
+    unique = !campaignScenes[campaignName].find((_) => cleanName(_.name) === cleanName(scene.name))
+  }
   const valid = validate(obj, newSceneSchema).valid
   const scene = obj as Scene
-  const unique = !getScenes().find((_) => cleanName(_.name) === cleanName(scene.name))
   const notEmpty = !!scene.playlistId || !!scene.soundboardIds
   return valid && unique && notEmpty
 }
@@ -69,16 +80,19 @@ export const toScene = (obj: any): Scene => {
   throw Error('Invalid Scene')
 }
 
-const getScenes = (): Scene[] => {
-  const scenes = JSON.parse(readFileSync(getJsonFilePath(), 'utf8'))
-  return sortBy(scenes, (_) => _.name)
+const getCampaignScenes = (): Record<string, Scene[]> => {
+  return JSON.parse(readFileSync(getJsonFilePath(), 'utf8'))
 }
 
-const updateScenes = (scenes: Scene[]) => {
+const updateScenes = (campaignName: string, scenes: Scene[]) => {
+  const campaignScenes = getCampaignScenes()
   writeFileSync(
     getJsonFilePath(),
     JSON.stringify(
-      sortBy(scenes, (_) => _.name),
+      {
+        ...campaignScenes,
+        [campaignName]: sortBy(scenes, (_) => _.name),
+      },
       null,
       2
     )
@@ -86,19 +100,36 @@ const updateScenes = (scenes: Scene[]) => {
 }
 
 export const listScenes = (): string => {
-  return JSON.stringify(getScenes())
+  return JSON.stringify(getCampaignScenes())
 }
 
-export const addScene = (scene: Scene): string => {
-  updateScenes([...getScenes(), scene])
+export const addScene = (campaignName: string, scene: Scene): string => {
+  verifyCampaignExists(campaignName)
+  const campaignScenes = getCampaignScenes()
+  updateScenes(campaignName, [...campaignScenes[campaignName], scene])
   return JSON.stringify(scene)
 }
 
-export const removeScenes = (id: string): string => {
-  const scenes = getScenes()
-  if (!scenes.find((_) => _.id === id)) {
-    throw Error(`Invalid id: ${id}`)
+export const removeScene = (campaignName: string, sceneId: string): string => {
+  verifyCampaignExists(campaignName)
+  const campaignScenes = getCampaignScenes()
+  const scenes = campaignScenes[campaignName]
+  if (!scenes.find((_) => _.id === sceneId)) {
+    throw Error(`Invalid scene id: ${sceneId}`)
   }
-  updateScenes(scenes.filter((_) => _.id !== id))
+  updateScenes(
+    campaignName,
+    scenes.filter((_) => _.id !== sceneId)
+  )
   return '{}'
+}
+
+export const addCampaign = (campaignName: string) => {
+  try {
+    verifyCampaignExists(campaignName)
+    throw Error(`Campaign named "${campaignName}" already exists`)
+  } catch {
+    updateScenes(cleanName(campaignName), [])
+    return { campaignName: cleanName(campaignName) }
+  }
 }
