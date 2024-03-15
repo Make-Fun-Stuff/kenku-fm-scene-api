@@ -7,36 +7,102 @@ import assert from 'assert'
 export interface Scene {
   id: string
   name: string
-  playlistId?: string
-  soundboardIds?: string[]
+  playlist?: {
+    id: string
+    title: string
+    repeat: string
+    shuffle: boolean
+    muted: boolean
+    volume: number
+  }
+  soundboards?: [
+    {
+      id: string
+      title: string
+      loop: boolean
+      volume: number
+    }
+  ]
+  discordMuteStatus?: {
+    muted: boolean
+  }
+  obsScene?: string
 }
 
 const newSceneSchema = {
   type: 'object',
+  required: ['name'],
+  additionalProperties: false,
   properties: {
     name: {
       type: 'string',
       minLength: 1,
       maxLength: 100,
     },
-    playlistId: {
-      type: 'string',
-      minLength: 1,
-      maxLength: 100,
+    playlist: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'title', 'repeat', 'shuffle'],
+      properties: {
+        id: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 100,
+        },
+        title: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 100,
+        },
+        repeat: {
+          type: 'string',
+          enum: ['playlist', 'track', 'off'],
+        },
+        shuffle: { type: 'boolean' },
+        muted: { type: 'boolean' },
+        volume: { type: 'number', min: 0, max: 1 },
+      },
     },
-    soundboardIds: {
+    soundboards: {
       type: 'array',
       minLength: 1,
       maxLength: 100,
       items: {
-        type: 'string',
-        minLength: 1,
-        maxLength: 100,
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'title', 'loop'],
+        properties: {
+          id: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+          title: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 100,
+          },
+          loop: { type: 'boolean' },
+          volume: { type: 'number', min: 0, max: 1 },
+        },
       },
     },
+    discordMuteStatus: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['muted'],
+      properties: {
+        muted: {
+          type: 'boolean',
+        },
+      },
+    },
+    obsScene: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 100,
+    },
   },
-  required: ['name'],
-  additionalProperties: true,
 }
 
 const cleanName = (name: string): string => {
@@ -58,7 +124,8 @@ const isScene = (obj: any, campaignName?: string): obj is Scene => {
   }
   const valid = validate(obj, newSceneSchema).valid
   const scene = obj as Scene
-  const notEmpty = !!scene.playlistId || !!scene.soundboardIds
+  const notEmpty =
+    !!scene.playlist || !!scene.soundboards || !!scene.discordMuteStatus || !!scene.obsScene
   return valid && unique && notEmpty
 }
 
@@ -73,8 +140,10 @@ export const toScene = (obj: any): Scene => {
     return {
       id: uuidv4(),
       name: cleanName(scene.name),
-      playlistId: scene.playlistId,
-      soundboardIds: scene.soundboardIds,
+      playlist: scene.playlist,
+      soundboards: scene.soundboards,
+      obsScene: scene.obsScene,
+      discordMuteStatus: scene.discordMuteStatus,
     }
   }
   throw Error('Invalid Scene')
