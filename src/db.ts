@@ -27,6 +27,10 @@ export interface Scene {
     muted: boolean
   }
   obsScene?: string
+  lights?: {
+    sceneId: string
+    transitionSpeed: string
+  }
 }
 
 const newSceneSchema = {
@@ -102,6 +106,19 @@ const newSceneSchema = {
       minLength: 1,
       maxLength: 100,
     },
+    lights: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['sceneId', 'transitionSpeed'],
+      properties: {
+        sceneId: {
+          type: 'string',
+        },
+        transitionSpeed: {
+          type: 'string',
+        },
+      },
+    },
   },
 }
 
@@ -125,7 +142,11 @@ const isScene = (obj: any, campaignName?: string): obj is Scene => {
   const valid = validate(obj, newSceneSchema).valid
   const scene = obj as Scene
   const notEmpty =
-    !!scene.playlist || !!scene.soundboards || !!scene.discordMuteStatus || !!scene.obsScene
+    !!scene.playlist ||
+    !!scene.soundboards ||
+    !!scene.discordMuteStatus ||
+    !!scene.obsScene ||
+    !!scene.lights
   return valid && unique && notEmpty
 }
 
@@ -144,6 +165,7 @@ export const toScene = (obj: any): Scene => {
       soundboards: scene.soundboards,
       obsScene: scene.obsScene,
       discordMuteStatus: scene.discordMuteStatus,
+      lights: scene.lights,
     }
   }
   throw Error('Invalid Scene')
